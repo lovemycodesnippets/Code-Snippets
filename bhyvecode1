@@ -1,0 +1,41 @@
+#!/bin/sh
+
+# Enable IP forwarding
+
+sysctl net.inet.ip.forwarding=1
+
+DISKIMG=vm_disk.raw
+
+MEMORY=4G
+
+VM_NAME=vm_name
+
+# Load bhyve image
+
+bhyveload -m ${MEMORY} -d ${DISKIMG} ${VM_NAME}
+
+# Start the VM
+
+bhyve -A -H -P -c 2 -m ${MEMORY} \
+
+      -s 0,hostbridge \
+
+      -s 1,lpc \
+
+      -s 2,virtio-net,tap0 \
+
+      -s 3,nvme,${DISKIMG} \
+
+      -l com1,stdio \
+
+      ${VM_NAME} &
+
+PID=$!
+
+sleep 1
+
+# Configure networking, this example uses a class c IP address and subnet
+
+ifconfig tap0 inet 192.168.0.1 netmask 255.255.255.252
+
+wait ${PID}
